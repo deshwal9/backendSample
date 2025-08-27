@@ -1,0 +1,51 @@
+version: '3.9'
+services:
+  mongodb:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  student-service:
+    build: ./services/student-service
+    container_name: student-service
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongodb:27017/students
+      - PORT=3001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+  gateway-service:
+    build: ./services/gateway-service
+    container_name: gateway-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - STUDENT_SERVICE_URL=http://student-service:3001
+    depends_on:
+      - student-service
+    ports:
+      - "8081:3000"
+
+  web-ui:
+    build: ./services/web-ui
+    container_name: web-ui
+    ports:
+      - "8080:80"
+    depends_on:
+      - gateway-service
+
+volumes:
+  mongo_data:
+
