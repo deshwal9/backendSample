@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student Management</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Student Management</h1>
+
+      <section class="card">
+        <h2>Add Student</h2>
+        <form id="student-form">
+          <label>
+            Name
+            <input name="name" required />
+          </label>
+          <label>
+            Email
+            <input name="email" type="email" required />
+          </label>
+          <label>
+            Age
+            <input name="age" type="number" min="1" required />
+          </label>
+          <button type="submit">Create</button>
+          <span id="status" class="status"></span>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Students</h2>
+        <button id="refresh">Refresh</button>
+        <table id="students">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById('student-form');
+      const statusEl = document.getElementById('status');
+      const refreshBtn = document.getElementById('refresh');
+      const tbody = document.querySelector('#students tbody');
+
+      async function fetchStudents() {
+        tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+        try {
+          const res = await fetch('/api/students');
+          const data = await res.json();
+          tbody.innerHTML = data.map(s => `<tr><td>${s.name}</td><td>${s.email}</td><td>${s.age}</td></tr>`).join('');
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="3">Failed to load</td></tr>';
+        }
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        statusEl.textContent = 'Saving...';
+        const formData = new FormData(form);
+        const body = Object.fromEntries(formData);
+        body.age = Number(body.age);
+        try {
+          const res = await fetch('/api/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) throw new Error('Failed');
+          statusEl.textContent = 'Created!';
+          form.reset();
+          fetchStudents();
+        } catch {
+          statusEl.textContent = 'Error creating student';
+        }
+      });
+
+      refreshBtn.addEventListener('click', fetchStudents);
+      fetchStudents();
+    </script>
+  </body>
+  </html>
+
